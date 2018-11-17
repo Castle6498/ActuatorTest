@@ -17,10 +17,14 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 public class Robot extends IterativeRobot {
 	LinearActuator m;
 	Joystick j;
+	IRSensor i;
+	NidecBrushless motor;
 	@Override
 	public void robotInit() {
 		m = new LinearActuator(0);
 		j=new Joystick(0);
+		i = new IRSensor(0, 2, 3);//port, min volt, max volt triggers
+		motor = new NidecBrushless(6,5,0,1);//pwm, dio, a, b
 	}
 
 	
@@ -44,6 +48,20 @@ public class Robot extends IterativeRobot {
 	public void teleopPeriodic() {
 		m.set((j.getRawAxis(3)+1)/2);
 		System.out.println(m.get());
+		
+		System.out.println("Voltage: "+i.getVoltage());
+		System.out.println("Target? "+i.seesBall());
+	
+		
+		double input = j.getY();
+		if(input<0) {
+			motor.enable();
+		}else {
+			motor.disable();
+		}
+		motor.set(Math.abs(j.getY())-1);
+		//motor.set(-0.5);
+		System.out.println(motor.get());
 	}
 
 	/**
