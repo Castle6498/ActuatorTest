@@ -58,8 +58,8 @@ public class NidecBrushless extends SendableBase implements SpeedController, Mot
     m_pwmDirection = new PWM(pwmDirectionChannel);
     addChild(m_pwmDirection);
     
-    //HAL.report(tResourceType.kResourceType_NidecBrushless, pwmDirectionChannel);
-    //setName("Nidec Brushless", pwmDirectionChannel);
+    HAL.report(tResourceType.kResourceType_NidecBrushless, pwmEnableChannel);
+    setName("Nidec Brushless", pwmEnableChannel);
     
     encoder=new Encoder(encoderAChannel, encoderBChannel);
     encoder.setDistancePerPulse(.01); //100 ticks/revolution
@@ -114,6 +114,11 @@ public class NidecBrushless extends SendableBase implements SpeedController, Mot
       
     }
   
+  }
+  
+  public void setVelocity(double velocity) {
+	  //um... somehow
+	  
   }
 
   /**

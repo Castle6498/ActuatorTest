@@ -23,8 +23,8 @@ public class Robot extends IterativeRobot {
 	public void robotInit() {
 		m = new LinearActuator(0);
 		j=new Joystick(0);
-		i = new IRSensor(0, 2, 3);//port, min volt, max volt triggers
-		motor = new NidecBrushless(6,5,7,1,2);//pwmEnableChannel, dioChannel, pwmDirectionChannel, encoderAChannel, encoderBChannel
+		//i = new IRSensor(0, 2, 3);//port, min volt, max volt triggers
+		motor = new NidecBrushless(6,5,7,1,3);//pwmEnableChannel, dioChannel, pwmDirectionChannel, encoderAChannel, encoderBChannel
 	}
 
 	
@@ -44,21 +44,20 @@ public class Robot extends IterativeRobot {
 	/**
 	 * This function is called periodically during operator control.
 	 */	
+	public void teleopInit() {
+		motor.enable();
+	}
 	@Override
 	public void teleopPeriodic() {
 		m.set((j.getRawAxis(3)+1)/2);
 		System.out.println(m.get());
 		
-		System.out.println("Voltage: "+i.getVoltage());
-		System.out.println("Target? "+i.seesBall());
+		//System.out.println("Voltage: "+i.getVoltage());
+	//	System.out.println("Target? "+i.seesBall());
 	
 		
-		double input = j.getY();
-		if(input<0) {
-			motor.enable();
-		}else {
-			motor.disable();
-		}
+		
+		
 		motor.set(j.getY());
 		//motor.set(-0.5);
 		System.out.println(motor.get()+" Distance: "+motor.getDistance()+ "Rate: "+motor.getRate());
