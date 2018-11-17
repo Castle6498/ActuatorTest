@@ -14,13 +14,14 @@ import edu.wpi.first.wpilibj.hal.HAL;
 import edu.wpi.first.wpilibj.smartdashboard.SendableBuilder;
 
 /**
- * Nidec Brushless Motor.
+ * Nidec Brushless Motor FOR THE 3.3 FREAKING MOTOR
  */
 public class NidecBrushless extends SendableBase implements SpeedController, MotorSafety, Sendable {
   private final MotorSafetyHelper m_safetyHelper;
   private boolean m_isInverted = false;
   private DigitalOutput m_dio;
-  private PWM m_pwm;
+  private PWM m_pwmEnable;
+  private PWM m_pwmDirection;
   private volatile double m_speed = 0.0;
   private volatile boolean m_disabled = false;
   Encoder encoder;
@@ -28,12 +29,18 @@ public class NidecBrushless extends SendableBase implements SpeedController, Mot
   /**
    * Constructor.
    *
-   * @param pwmChannel The PWM channel that the Nidec Brushless controller is attached to.
-   *                   0-9 are on-board, 10-19 are on the MXP port
-   * @param dioChannel The DIO channel that the Nidec Brushless controller is attached to.
-   *                   0-9 are on-board, 10-25 are on the MXP port
+   * @param pwmEnableChannel The PWM channel used to enable and disable.
+   *                   
+   * @param dioChannel The DIO channel used as a PWM signal.
+   *                
+   * @param pwmDirectionChannel The PWM channel used for the direction pin.
+   *                  
+   * @param encoderAChannel The A channel for the encoder (DIO).
+   * 
+   * @param encoderBChannel The B channel for the encoder (DIO).
+   *              
    */
-  public NidecBrushless(final int pwmChannel, final int dioChannel, final int encoderA, final int encoderB) {
+  public NidecBrushless(final int pwmEnableChannel, final int dioChannel, final int pwmDirectionChannel, final int encoderAChannel, final int encoderBChannel) {
     m_safetyHelper = new MotorSafetyHelper(this);
     m_safetyHelper.setExpiration(0.0);
     m_safetyHelper.setSafetyEnabled(false);
@@ -42,19 +49,37 @@ public class NidecBrushless extends SendableBase implements SpeedController, Mot
     m_dio = new DigitalOutput(dioChannel);
     addChild(m_dio);
     m_dio.setPWMRate(15625); //frequency 
-    m_dio.enablePWM(0.5);
+    m_dio.enablePWM(0);
 
     // the pwm enables the controller
-    m_pwm = new PWM(pwmChannel);
-    addChild(m_pwm);
-
-    HAL.report(tResourceType.kResourceType_NidecBrushless, pwmChannel);
-    setName("Nidec Brushless", pwmChannel);
+    m_pwmEnable = new PWM(pwmEnableChannel);
+    addChild(m_pwmEnable);
     
-    encoder=new Encoder(encoderA, encoderB);
+    m_pwmDirection = new PWM(pwmDirectionChannel);
+    addChild(m_pwmDirection);
+    
+    //HAL.report(tResourceType.kResourceType_NidecBrushless, pwmDirectionChannel);
+    //setName("Nidec Brushless", pwmDirectionChannel);
+    
+    encoder=new Encoder(encoderAChannel, encoderBChannel);
     encoder.setDistancePerPulse(.01); //100 ticks/revolution
   }
-
+  
+  public double getRawTicks() {
+	  return encoder.getRaw();
+  }
+  
+  public double getDistance() {
+	  return encoder.getDistance();
+  }
+  
+  public void resetDistance() {
+	  encoder.reset();
+  }
+  public double getRate() {
+	 return encoder.getRate();
+  }
+  
   /**
    * Free the resources used by this object.
    */
@@ -62,7 +87,8 @@ public class NidecBrushless extends SendableBase implements SpeedController, Mot
   public void free() {
     super.free();
     m_dio.free();
-    m_pwm.free();
+    m_pwmEnable.free();
+    m_pwmDirection.free();
   }
 
   /**
@@ -75,12 +101,19 @@ public class NidecBrushless extends SendableBase implements SpeedController, Mot
    */
   @Override
   public void set(double speed) {
-   // if (!m_disabled) {
-      m_speed = speed;
-      m_dio.updateDutyCycle(0.5 + 0.5 * (m_isInverted ? -speed : speed));
-      //
-    //}
-   // m_safetyHelper.feed();
+    if (!m_disabled) {
+    	 m_speed = speed;
+    	speed=(m_isInverted ? -speed : speed);
+      if(speed>=0) {
+    	  m_pwmDirection.setDisabled();
+      }else {
+    	  m_pwmDirection.setRaw(0xffff);
+      }
+     
+      m_dio.updateDutyCycle(Math.abs(speed));
+      
+    }
+  
   }
 
   /**
@@ -150,8 +183,8 @@ public class NidecBrushless extends SendableBase implements SpeedController, Mot
    */
   @Override
   public void stopMotor() {
-    m_dio.updateDutyCycle(0.5);
-    m_pwm.setDisabled();
+    m_dio.updateDutyCycle(0); //THIS IS WHY IT WAS FLIPPING MOVING :D (3.3's have 0-1 signal where 0 is off, unlike Dynamo's 0.5)
+    m_pwmEnable.setDisabled();
   }
 
   /**
@@ -180,9 +213,11 @@ public class NidecBrushless extends SendableBase implements SpeedController, Mot
    */
   @Override
   public void disable() {
-   // m_disabled = true;
-  //  m_dio.updateDutyCycle(0.5);
-    m_pwm.setDisabled();
+    m_disabled = true;
+    m_dio.updateDutyCycle(0);
+   
+    //m_pwmEnable.setRaw(0xffff);
+    m_pwmEnable.setDisabled();
   }
 
   /**
@@ -190,7 +225,8 @@ public class NidecBrushless extends SendableBase implements SpeedController, Mot
    * function must be called to set a new motor speed.
    */
   public void enable() {
-	  m_pwm.setRaw(0xffff);
+	  m_pwmEnable.setRaw(0xffff);
+	  //m_pwmEnable.setDisabled();
   }
 
   /**
@@ -199,7 +235,7 @@ public class NidecBrushless extends SendableBase implements SpeedController, Mot
    * @return The channel number.
    */
   public int getChannel() {
-    return m_pwm.getChannel();
+    return m_dio.getChannel();
   }
 
   @Override

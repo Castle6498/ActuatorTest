@@ -24,7 +24,7 @@ public class Robot extends IterativeRobot {
 		m = new LinearActuator(0);
 		j=new Joystick(0);
 		i = new IRSensor(0, 2, 3);//port, min volt, max volt triggers
-		motor = new NidecBrushless(6,5,0,1);//pwm, dio, a, b
+		motor = new NidecBrushless(6,5,7,1,2);//pwmEnableChannel, dioChannel, pwmDirectionChannel, encoderAChannel, encoderBChannel
 	}
 
 	
@@ -59,9 +59,10 @@ public class Robot extends IterativeRobot {
 		}else {
 			motor.disable();
 		}
-		motor.set(Math.abs(j.getY())-1);
+		motor.set(j.getY());
 		//motor.set(-0.5);
-		System.out.println(motor.get());
+		System.out.println(motor.get()+" Distance: "+motor.getDistance()+ "Rate: "+motor.getRate());
+		
 	}
 
 	/**
